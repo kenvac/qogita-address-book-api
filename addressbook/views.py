@@ -1,8 +1,9 @@
 
 from django.shortcuts import get_object_or_404, get_list_or_404
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.settings import api_settings
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import AddressBookSerializer
@@ -14,6 +15,40 @@ class AddressBookViews(APIView):
 
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+    pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
+
+    @property
+    def paginator(self):
+        """
+        The paginator instance associated with the view, or `None`.
+        """
+        if not hasattr(self, '_paginator'):
+            if self.pagination_class is None:
+                self._paginator = None
+            else:
+                self._paginator = self.pagination_class()
+        return self._paginator
+
+    def paginate_queryset(self, queryset):
+        """
+        Return a single page of results,
+        or `None` if pagination is disabled.
+        """
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(
+            queryset,
+            self.request,
+            view=self
+        )
+
+    def get_paginated_response(self, data):
+        """
+        Return a paginated style `Response` object
+        for the given output data.
+        """
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data)
 
     def _get_address_object(self, request, id):
         """Get address object from id with filter on requested user"""
@@ -42,6 +77,12 @@ class AddressBookViews(APIView):
                 AddressBook, zip=zip, owner=request.user.id)
         else:
             items = get_list_or_404(AddressBook, owner=request.user.id)
+        if many:
+            page = self.paginate_queryset(items)
+            if page is not None:
+                serializer = AddressBookSerializer(page, many=many)
+                return self.get_paginated_response(serializer.data)
+
         serializer = AddressBookSerializer(items, many=many)
         return Response({"status": "success", "data": serializer.data},
                         status=status.HTTP_200_OK)

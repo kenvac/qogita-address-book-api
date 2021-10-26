@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-%e$frx$b%6h)h(q(hj)vku*w*_72e^r9y#9_pvw6b^xjz^13^+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -80,7 +80,9 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSIONS_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-    ]
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 100
 }
 
 DJOSER = {
